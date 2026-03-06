@@ -1,0 +1,15 @@
+# Ignorar bases de datos pesadas
+data/
+*.csv
+*.zip
+
+# Ignorar configuración de Python y VS Code
+.venv/
+venv/
+__pycache__/
+.ipynb_checkpoints/
+.vscode/
+
+# Ignorar archivos temporales del sistema
+.DS_Store
+Thumbs.db
