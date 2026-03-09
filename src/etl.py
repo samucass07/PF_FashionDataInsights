@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+#<<<<<<< HEAD
 import pandas as pd
 import numpy as np
 import os
@@ -168,7 +168,7 @@ def main():
 
 if __name__ == "__main__":
     main()
-=======
+
 import pandas as pd
 import numpy as np
 import os
@@ -410,4 +410,4 @@ def main():
 if __name__ == "__main__":
     main()
 
->>>>>>> 52a916511256b22e22859b62498a8785e5fa12fc
+#>>>>>>> 52a916511256b22e22859b62498a8785e5fa12fc
