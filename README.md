@@ -38,6 +38,8 @@ El archivo `src/etl.py` es nuestra solución de ingeniería. Transforma los dato
 * **Optimización de RAM**: Cambiamos la forma en que la computadora lee los números para que ocupen un 60% menos de espacio en la memoria.
 * **Integridad Referencial**: Nos aseguramos de que no existan compras de productos que no estén en el catálogo oficial.
 
+Informe:
+[Ver informe completo ETL](https://github.com/samucass07/PF_FashionDataInsights/tree/main/reports/ETL/ETL.md)
 
 
 ---
@@ -52,10 +54,7 @@ El archivo contiene la revisión y análisis del comportamiento inicial del data
 - Correlaciones y patrones
 
 Informe:
-**[Ver informe completo EDA](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/EDA/EDA.md)
-
-
-
+[Ver informe completo EDA](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/EDA/EDA.md)
 
 
 ---
@@ -80,7 +79,11 @@ Si quieres replicar este proyecto en tu computadora, sigue estos pasos:
     python src/etl.py
     ```
 
+## Presentaciones
+
+* [Presentación 1](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/EDA/EDA.md)
+
 ## Autores
 Este es un proyecto desarrollado por:
 * **Tobias Dagrava**: Estudiante de Ingeniería en Sistemas (UTN - FRLP), con especialización en Data Science y modelado de datos.
-* **Samuel**: Desarrollador colaborador y encargado de la gestión del repositorio y sincronización de datos.
+* **Samuel**: Desarrollador, colaborador y encargado de la gestión del repositorio y sincronización de datos.
