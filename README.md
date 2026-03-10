@@ -2,6 +2,13 @@
 
 ¡Bienvenido al repositorio central de nuestro proyecto de análisis de datos! Este trabajo es una colaboración conjunta diseñada para transformar datos crudos del sector retail en información estructurada y lista para modelos de Inteligencia Artificial.
 
+
+
+---
+
+## Obejtivo del Proyecto
+Desarrollar un sistema de recomendación híbrido capaz de predecir, para cada cliente, los 12 artículos con mayor probabilidad de compra en el próximo período.
+
 ---
 
 ## Estructura del Repositorio
