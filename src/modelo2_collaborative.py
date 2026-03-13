@@ -1,5 +1,13 @@
-
 """
+Modelo 2: User-Based Collaborative Filtering (v3 - optimizado)
+===============================================================
+FashionData Insights — H&M Personalized Fashion Recommendations
+
+Optimizaciones vs v2:
+- Solo genera recomendaciones para clientes que están en test (7k vs 135k)
+- Corrige bug de tipos: article_id se castea a string en evaluación
+- Tiempo estimado: ~5 min en lugar de 2.5 horas
+
 USO: python modelo2_collaborative_filtering.py
 REQUISITOS: pip install scikit-learn scipy
 """
@@ -19,8 +27,7 @@ PROCESSED_PATH = "data/processed"
 TOP_K          = 12
 N_NEIGHBORS    = 20
 EVAL_WEEKS     = 1
-BATCH_SIZE     = 500   # clientes por batch — ajusta según tu RAM
-                       # 500 es seguro para 8GB, puedes subir a 1000 con 16GB
+BATCH_SIZE     = 200   # batches de clientes en test
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 log = logging.getLogger(__name__)
@@ -37,10 +44,14 @@ def load_data():
     )
     interactions = pd.read_csv(os.path.join(PROCESSED_PATH, "features_interactions.csv"))
 
+    # Normalizar tipos para evitar mismatch en evaluación
+    interactions["customer_id"] = interactions["customer_id"].astype(str)
+    interactions["article_id"]  = interactions["article_id"].astype(str)
+    transactions["customer_id"] = transactions["customer_id"].astype(str)
+    transactions["article_id"]  = transactions["article_id"].astype(str)
+
     log.info(f"  transactions: {len(transactions):,} filas")
     log.info(f"  interactions: {len(interactions):,} pares cliente-artículo")
-    log.info(f"  Clientes en matriz: {interactions['customer_id'].nunique():,}")
-    log.info(f"  Artículos en matriz: {interactions['article_id'].nunique():,}")
     return transactions, interactions
 
 # ─────────────────────────────────────────────
@@ -81,59 +92,59 @@ def build_user_item_matrix(interactions):
 
     density = matrix.nnz / (matrix.shape[0] * matrix.shape[1]) * 100
     log.info(f"  Shape: {matrix.shape[0]:,} clientes x {matrix.shape[1]:,} artículos")
-    log.info(f"  Interacciones no nulas: {matrix.nnz:,}")
     log.info(f"  Densidad: {density:.4f}%")
 
     return matrix, customer_idx, article_idx
 
 # ─────────────────────────────────────────────
-# PREDICCIÓN POR BATCHES (sin materializar matriz completa)
+# PREDICCIÓN SOLO PARA CLIENTES EN TEST
 # ─────────────────────────────────────────────
 
-def predict_batches(matrix, customer_idx, article_idx, top_k=12, n_neighbors=20, batch_size=500):
+def predict_for_test_users(matrix, customer_idx, article_idx, test_customer_ids,
+                            top_k=12, n_neighbors=20, batch_size=200):
     """
-    Genera recomendaciones procesando la similitud por batches.
-
-    En lugar de calcular toda la matriz de similitud (135k x 135k = 137GB),
-    calcula la similitud solo para un batch de clientes a la vez contra
-    todos los demás. Cada batch ocupa ~550MB en RAM.
-
-    Batch de 500 clientes:
-      500 x 135,738 x 8 bytes = ~543 MB — manejable con 8GB RAM
+    Solo genera recomendaciones para los clientes presentes en test.
+    Justificación: no tiene sentido calcular similitud para los 135k
+    clientes si la evaluación solo cubre 7k. Esto reduce el tiempo
+    de ~2.5 horas a ~5 minutos.
     """
-    log.info(f"Generando recomendaciones por batches (batch_size={batch_size})...")
+    idx_to_article = {v: k for k, v in article_idx.items()}
 
-    idx_to_customer = {v: k for k, v in customer_idx.items()}
-    idx_to_article  = {v: k for k, v in article_idx.items()}
+    # Índices en la matriz de los clientes que están en test
+    test_indices = [
+        customer_idx[c]
+        for c in test_customer_ids
+        if c in customer_idx
+    ]
 
-    n_customers   = matrix.shape[0]
+    n_test    = len(test_indices)
+    n_batches = (n_test + batch_size - 1) // batch_size
+    log.info(f"Generando recomendaciones para {n_test:,} clientes en test (batch_size={batch_size})...")
+    log.info(f"  Clientes en test sin historial (cold start): {len(test_customer_ids) - n_test:,}")
+
     recommendations = []
-    n_batches     = (n_customers + batch_size - 1) // batch_size
 
-    for batch_num, start in enumerate(range(0, n_customers, batch_size)):
-        end         = min(start + batch_size, n_customers)
-        batch_matrix = matrix[start:end]  # submatriz del batch actual
+    for batch_num, start in enumerate(range(0, n_test, batch_size)):
+        end          = min(start + batch_size, n_test)
+        batch_global = test_indices[start:end]
+        batch_matrix = matrix[batch_global]
 
-        # Similitud solo del batch contra todos los clientes
-        # Shape: (batch_size, n_customers) — manejable en RAM
+        # Similitud del batch de test contra TODOS los clientes
+        # Shape: (batch_size, 135k) — ~218MB para batch=200, manejable
         sim_batch = cosine_similarity(batch_matrix, matrix, dense_output=True)
 
-        for local_i in range(end - start):
-            global_i    = start + local_i
-            customer_id = idx_to_customer[global_i]
+        for local_i, global_i in enumerate(batch_global):
+            customer_id = [k for k, v in customer_idx.items() if v == global_i][0]
 
-            sim_scores  = sim_batch[local_i].copy()
+            sim_scores           = sim_batch[local_i].copy()
             sim_scores[global_i] = 0  # excluir a sí mismo
 
-            # Top N vecinos
             neighbor_indices = np.argsort(sim_scores)[::-1][:n_neighbors]
             neighbor_weights = sim_scores[neighbor_indices]
 
-            # Scores ponderados de artículos de los vecinos
             neighbor_matrix = matrix[neighbor_indices].toarray()
             item_scores     = neighbor_weights @ neighbor_matrix
 
-            # Excluir artículos ya comprados
             already_bought = set(matrix[global_i].nonzero()[1])
 
             ranked    = np.argsort(item_scores)[::-1]
@@ -148,8 +159,7 @@ def predict_batches(matrix, customer_idx, article_idx, top_k=12, n_neighbors=20,
                 "predictions": top_items
             })
 
-        if (batch_num + 1) % 10 == 0 or batch_num == 0:
-            log.info(f"  Batch {batch_num+1}/{n_batches} — {end:,}/{n_customers:,} clientes procesados")
+        log.info(f"  Batch {batch_num+1}/{n_batches} — {end}/{n_test} clientes procesados")
 
     log.info(f"  Recomendaciones generadas: {len(recommendations):,} clientes")
     return pd.DataFrame(recommendations)
@@ -243,8 +253,12 @@ def main():
 
     matrix, customer_idx, article_idx = build_user_item_matrix(interactions_train)
 
-    recommendations = predict_batches(
+    # Solo predecimos para clientes que tienen compras en test
+    test_customer_ids = list(test["customer_id"].unique())
+
+    recommendations = predict_for_test_users(
         matrix, customer_idx, article_idx,
+        test_customer_ids=test_customer_ids,
         top_k=TOP_K, n_neighbors=N_NEIGHBORS, batch_size=BATCH_SIZE
     )
 
