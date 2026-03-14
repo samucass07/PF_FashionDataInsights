@@ -43,10 +43,6 @@ def load_model_data():
 # LÓGICA DE RECOMENDACIÓN
 # ─────────────────────────────────────────────
 
-# ─────────────────────────────────────────────
-# LÓGICA DE RECOMENDACIÓN
-# ─────────────────────────────────────────────
-
 def recommend(customer_id, customers_df, popularity_df, articles_df, n=12):
     """
     Recomienda los N artículos más populares para la generación del cliente.
