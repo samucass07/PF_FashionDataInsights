@@ -96,53 +96,55 @@ def recommend(customer_id, customers_df, popularity_df, articles_df, n=12):
     return recomendaciones_finales
 
 # ─────────────────────────────────────────────
-# PRUEBA LOCAL (MAIN)
+# GENERAR PREDICCIONES Y GUARDAR (MAIN)
 # ─────────────────────────────────────────────
 
+def save_results(recommendations_list):
+    """Guarda las recomendaciones en formato 'explotado' (una fila por artículo)."""
+    df = pd.DataFrame(recommendations_list)
+    recs_exploded = df.explode("predictions").rename(columns={"predictions": "article_id"})
+    
+    path_r = os.path.join(PROCESSED_PATH, "recommendations_model1.csv")
+    recs_exploded.to_csv(path_r, index=False)
+    log.info(f"Recomendaciones Modelo 1 guardadas en: {path_r}")
+
 if __name__ == "__main__":
-    log.info("=" * 50)
-    log.info("INICIANDO PRUEBA DEL MODELO 1")
-    log.info("=" * 50)
+    log.info("=" * 55)
+    log.info("MODELO 1 — Popularidad por Generación")
+    log.info("=" * 55)
 
-    # 1. Cargamos los datos en la memoria RAM (solo se hace una vez)
+    # 1. Cargamos los datos en la memoria RAM
     df_customers, df_popularity, df_articles = load_model_data()
-
-    # 2. Elegimos un cliente de prueba dinámicamente
-    # En lugar de hardcodear un ID, tomamos el primero que aparezca en el dataset
-    # para asegurarnos de que el código no tire error por no encontrarlo.
-    test_customer_id = df_customers["customer_id"].iloc[0]
     
-    # También podés probar el Cold Start descomentando esta línea:
-    # test_customer_id = "cliente_fantasma_123"
-
-    log.info(f"Generando recomendaciones para el cliente: {test_customer_id}")
-
-    # 3. Llamamos a la función matemática pasándole los datos en memoria
-    recomendaciones = recommend(
-        customer_id=test_customer_id, 
-        customers_df=df_customers, 
-        popularity_df=df_popularity, 
-        articles_df=df_articles,
-        n=12
-    )
-
-    # 4. Mostramos el resultado con los nombres reales
-    print("\n" + "-" * 60)
-    print(f" TOP 12 RECOMENDACIONES PARA EL CLIENTE ")
-    print("-" * 60)
+    # 2. Cargamos el test para saber a qué clientes predecirle
+    test_path = os.path.join(PROCESSED_PATH, "test_transactions.csv")
+    test_df = pd.read_csv(test_path, dtype={'customer_id': str, 'article_id': str})
+    clientes_a_predecir = test_df['customer_id'].unique()
     
-    for i, articulo_id in enumerate(recomendaciones, 1):
-        # Buscamos la fila del artículo en nuestro DataFrame cargado en RAM
-        datos_articulo = df_articles[df_articles["article_id"] == articulo_id]
+    log.info(f"Generando recomendaciones para {len(clientes_a_predecir):,} clientes del Test...")
+    
+    # 3. Calculamos recomendaciones para todos los clientes (ESTO PUEDE TARDAR UNOS MINUTOS)
+    todas_las_recomendaciones = []
+    
+    for i, customer_id in enumerate(clientes_a_predecir):
+        rec = recommend(
+            customer_id=customer_id, 
+            customers_df=df_customers, 
+            popularity_df=df_popularity, 
+            articles_df=df_articles,
+            n=12
+        )
         
-        # Extraemos el nombre. 
-        # NOTA: Cambiá "prod_name" por el nombre exacto de la columna en tu dataset
-        # (A veces suele llamarse "detail_desc", "product_type_name", etc.)
-        if not datos_articulo.empty and "prod_name" in datos_articulo.columns:
-            nombre = datos_articulo["prod_name"].values[0]
-        else:
-            nombre = "Descripción no disponible"
-            
-        print(f" {i:02d}. ID: {articulo_id} | Producto: {nombre}")
+        todas_las_recomendaciones.append({
+            "customer_id": customer_id,
+            "predictions": rec
+        })
         
-    print("-" * 60 + "\n")
+        # Un simple log para ver que el código avanza
+        if (i + 1) % 1000 == 0:
+            log.info(f"  Procesados {i+1} de {len(clientes_a_predecir)} clientes...")
+
+    # 4. Guardar archivo final
+    save_results(todas_las_recomendaciones)
+    log.info("=" * 55)
+    log.info("¡Modelo 1 finalizado!")
