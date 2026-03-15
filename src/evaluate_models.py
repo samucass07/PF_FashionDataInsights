@@ -41,8 +41,8 @@ def main():
     # 2. Archivos a evaluar
     modelos_a_evaluar = {
         "Modelo 1 (Popularidad)": "recommendations_model1.csv", # Cambiá este nombre si tu archivo se llama distinto
-        "Modelo 2 (Colaborativo)": "recommendations_model2.csv"
-        # "Modelo Híbrido": "recommendations_hybrid.csv"  <-- Lo dejamos listo para el final
+        "Modelo 2 (Colaborativo)": "recommendations_model2.csv",
+        "Modelo Híbrido": "recommendations_hybrid.csv"
     }
 
     for nombre_modelo, archivo in modelos_a_evaluar.items():
