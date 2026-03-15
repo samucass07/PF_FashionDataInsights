@@ -21,7 +21,7 @@ def load_data():
     # Usamos os.path.join que es más seguro para evitar errores de barras
     customers     = pd.read_csv(os.path.join(PROCESSED_PATH, "customers_clean.csv"))
     articles      = pd.read_csv(os.path.join(PROCESSED_PATH, "articles_clean.csv"))
-    transactions  = pd.read_csv(os.path.join(PROCESSED_PATH, "transactions_sample.csv"), parse_dates=["t_dat"])
+    transactions  = pd.read_csv(os.path.join(PROCESSED_PATH, "train_transactions.csv"), parse_dates=["t_dat"])
     
     log.info(f"  customers:    {len(customers):,} filas")
     log.info(f"  articles:     {len(articles):,} filas")

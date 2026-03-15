@@ -1,17 +1,3 @@
-"""
-Modelo 2: User-Based Collaborative Filtering (v3 - optimizado)
-===============================================================
-FashionData Insights — H&M Personalized Fashion Recommendations
-
-Optimizaciones vs v2:
-- Solo genera recomendaciones para clientes que están en test (7k vs 135k)
-- Corrige bug de tipos: article_id se castea a string en evaluación
-- Tiempo estimado: ~5 min en lugar de 2.5 horas
-
-USO: python modelo2_collaborative_filtering.py
-REQUISITOS: pip install scikit-learn scipy
-"""
-
 import pandas as pd
 import numpy as np
 import os
@@ -37,36 +23,36 @@ log = logging.getLogger(__name__)
 # ─────────────────────────────────────────────
 
 def load_data():
-    log.info("Cargando datos...")
-    transactions = pd.read_csv(
-        os.path.join(PROCESSED_PATH, "transactions_sample.csv"),
+    """
+    Carga los archivos pre-divididos. 
+    Al usar dtypes aquí, ahorramos memoria y evitamos casteos manuales después.
+    """
+    log.info("Cargando datos limpios y divididos...")
+    
+    dtypes = {'customer_id': str, 'article_id': str}
+    
+    # 1. El pasado (lo que el modelo usará para aprender)
+    train = pd.read_csv(
+        os.path.join(PROCESSED_PATH, "train_transactions.csv"),
+        dtype=dtypes, 
         parse_dates=["t_dat"]
     )
-    interactions = pd.read_csv(os.path.join(PROCESSED_PATH, "features_interactions.csv"))
+    
+    # 2. El futuro (el examen para evaluar el modelo)
+    test = pd.read_csv(
+        os.path.join(PROCESSED_PATH, "test_transactions.csv"),
+        dtype=dtypes, 
+        parse_dates=["t_dat"]
+    )
+    
+    # 3. Las interacciones (ya filtradas para usar solo datos de train)
+    interactions = pd.read_csv(
+        os.path.join(PROCESSED_PATH, "features_interactions.csv"),
+        dtype=dtypes
+    )
 
-    # Normalizar tipos para evitar mismatch en evaluación
-    interactions["customer_id"] = interactions["customer_id"].astype(str)
-    interactions["article_id"]  = interactions["article_id"].astype(str)
-    transactions["customer_id"] = transactions["customer_id"].astype(str)
-    transactions["article_id"]  = transactions["article_id"].astype(str)
-
-    log.info(f"  transactions: {len(transactions):,} filas")
-    log.info(f"  interactions: {len(interactions):,} pares cliente-artículo")
-    return transactions, interactions
-
-# ─────────────────────────────────────────────
-# SPLIT TEMPORAL
-# ─────────────────────────────────────────────
-
-def temporal_split(transactions, eval_weeks=1):
-    cutoff = transactions["t_dat"].max() - pd.Timedelta(weeks=eval_weeks)
-    train  = transactions[transactions["t_dat"] <= cutoff]
-    test   = transactions[transactions["t_dat"] >  cutoff]
-    log.info(f"Cutoff: {cutoff.date()}")
-    log.info(f"Train: {len(train):,} ({train['t_dat'].min().date()} → {train['t_dat'].max().date()})")
-    log.info(f"Test:  {len(test):,}  ({test['t_dat'].min().date()} → {test['t_dat'].max().date()})")
-    log.info(f"Clientes en test: {test['customer_id'].nunique():,}")
-    return train, test
+    log.info(f"  OK: Train ({len(train):,}), Test ({len(test):,}), Interactions ({len(interactions):,})")
+    return train, test, interactions
 
 # ─────────────────────────────────────────────
 # CONSTRUCCIÓN DE MATRIZ SPARSE
@@ -109,6 +95,10 @@ def predict_for_test_users(matrix, customer_idx, article_idx, test_customer_ids,
     de ~2.5 horas a ~5 minutos.
     """
     idx_to_article = {v: k for k, v in article_idx.items()}
+    
+    # 1. OPTIMIZACIÓN DE VELOCIDAD: Diccionario inverso de clientes fuera del loop
+    # Esto elimina la complejidad O(N) que hacía que el código tardara horas.
+    idx_to_customer = {v: k for k, v in customer_idx.items()}
 
     # Índices en la matriz de los clientes que están en test
     test_indices = [
@@ -134,7 +124,9 @@ def predict_for_test_users(matrix, customer_idx, article_idx, test_customer_ids,
         sim_batch = cosine_similarity(batch_matrix, matrix, dense_output=True)
 
         for local_i, global_i in enumerate(batch_global):
-            customer_id = [k for k, v in customer_idx.items() if v == global_i][0]
+            
+            # USAMOS EL DICCIONARIO INVERSO: Acceso instantáneo O(1)
+            customer_id = idx_to_customer[global_i]
 
             sim_scores           = sim_batch[local_i].copy()
             sim_scores[global_i] = 0  # excluir a sí mismo
@@ -147,7 +139,10 @@ def predict_for_test_users(matrix, customer_idx, article_idx, test_customer_ids,
 
             already_bought = set(matrix[global_i].nonzero()[1])
 
-            ranked    = np.argsort(item_scores)[::-1]
+            # 2. OPTIMIZACIÓN LÓGICA: Filtrar scores en cero para no recomendar basura
+            non_zero_items = (item_scores > 0).sum()
+            ranked         = np.argsort(item_scores)[::-1][:non_zero_items]
+            
             top_items = [
                 idx_to_article[j]
                 for j in ranked
@@ -243,17 +238,13 @@ def main():
     log.info("MODELO 2 — User-Based Collaborative Filtering")
     log.info("=" * 55)
 
-    transactions, interactions = load_data()
-    train, test                = temporal_split(transactions, EVAL_WEEKS)
+    # 1. Cargamos los datos limpios (ya divididos por tu árbitro)
+    train, test, interactions = load_data()
 
-    # Filtrar interactions para usar solo clientes en train
-    train_customer_ids = set(train["customer_id"].unique())
-    interactions_train = interactions[interactions["customer_id"].isin(train_customer_ids)]
-    log.info(f"Interacciones en train: {len(interactions_train):,}")
+    # 2. Construimos la matriz directamente con las interacciones seguras
+    matrix, customer_idx, article_idx = build_user_item_matrix(interactions)
 
-    matrix, customer_idx, article_idx = build_user_item_matrix(interactions_train)
-
-    # Solo predecimos para clientes que tienen compras en test
+    # 3. Solo predecimos para clientes que tienen compras en test
     test_customer_ids = list(test["customer_id"].unique())
 
     recommendations = predict_for_test_users(
@@ -262,6 +253,7 @@ def main():
         top_k=TOP_K, n_neighbors=N_NEIGHBORS, batch_size=BATCH_SIZE
     )
 
+    # 4. Evaluamos y guardamos
     metrics = evaluate(recommendations, test)
     save_results(recommendations, metrics)
 
