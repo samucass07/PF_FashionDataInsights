@@ -1,23 +1,20 @@
 import pandas as pd
 import numpy as np
-import os
-import logging
 from scipy.sparse import csr_matrix
 from sklearn.metrics.pairwise import cosine_similarity
+from config import PROCESSED_DIR, setup_logging
 
 # ─────────────────────────────────────────────
-# CONFIG
+# CONFIGURACIÓN DE PRODUCCIÓN
 # ─────────────────────────────────────────────
-
-PROCESSED_PATH = "data/processed"
+# En producción ya no iteramos, usamos el hiperparámetro óptimo 
+# descubierto en la fase de investigación (Grid Search).
+N_NEIGHBORS_OPTIMAL = 200
 TOP_K          = 12
-#grilla de búsqueda automática
-NEIGHBORS_GRID = [20, 50, 100, 200, 300] 
-EVAL_WEEKS     = 1
 BATCH_SIZE     = 200   
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
-log = logging.getLogger(__name__)
+# Inicializamos el log estandarizado para Airflow
+log = setup_logging()
 
 # ─────────────────────────────────────────────
 # CARGA DE DATOS
@@ -27,9 +24,10 @@ def load_data():
     log.info("Cargando datos limpios y divididos...")
     dtypes = {'customer_id': str, 'article_id': str}
     
-    train = pd.read_csv(os.path.join(PROCESSED_PATH, "train_transactions.csv"), dtype=dtypes, parse_dates=["t_dat"])
-    test = pd.read_csv(os.path.join(PROCESSED_PATH, "test_transactions.csv"), dtype=dtypes, parse_dates=["t_dat"])
-    interactions = pd.read_csv(os.path.join(PROCESSED_PATH, "features_interactions.csv"), dtype=dtypes)
+    # Usamos pathlib para acceder a las rutas
+    train = pd.read_csv(PROCESSED_DIR / "train_transactions.csv", dtype=dtypes, parse_dates=["t_dat"])
+    test = pd.read_csv(PROCESSED_DIR / "test_transactions.csv", dtype=dtypes, parse_dates=["t_dat"])
+    interactions = pd.read_csv(PROCESSED_DIR / "features_interactions.csv", dtype=dtypes)
 
     log.info(f"  OK: Train ({len(train):,}), Test ({len(test):,}), Interactions ({len(interactions):,})")
     return train, test, interactions
@@ -62,7 +60,7 @@ def build_user_item_matrix(interactions):
 # PREDICCIÓN
 # ─────────────────────────────────────────────
 
-def predict_for_test_users(matrix, customer_idx, article_idx, test_customer_ids, top_k=12, n_neighbors=20, batch_size=200):
+def predict_for_test_users(matrix, customer_idx, article_idx, test_customer_ids, top_k=12, n_neighbors=200, batch_size=200):
     idx_to_article = {v: k for k, v in article_idx.items()}
     idx_to_customer = {v: k for k, v in customer_idx.items()}
 
@@ -146,69 +144,43 @@ def save_results(recommendations, metrics):
     recs_exploded = recommendations.explode("predictions").rename(columns={"predictions": "article_id"})
     recs_exploded["rank"] = recs_exploded.groupby("customer_id").cumcount() + 1
 
-    path_r = os.path.join(PROCESSED_PATH, "recommendations_model2.csv")
+    path_r = PROCESSED_DIR / "recommendations_model2.csv"
     recs_exploded.to_csv(path_r, index=False)
     
-    path_m = os.path.join(PROCESSED_PATH, "metrics_model2.csv")
+    path_m = PROCESSED_DIR / "metrics_model2.csv"
     pd.DataFrame([metrics]).to_csv(path_m, index=False)
-    log.info(f"Resultados del ganador guardados en disco.")
+    log.info(f"Resultados guardados en disco.")
 
 # ─────────────────────────────────────────────
-# MAIN (GRID SEARCH)
+# MAIN REFACTOREADO PARA MLOPS
 # ─────────────────────────────────────────────
 
-def main():
+def run_collaborative_model():
+    """Función principal orquestable por Airflow."""
     log.info("=" * 60)
-    log.info("MODELO 2 — BÚSQUEDA DE HIPERPARÁMETROS (GRID SEARCH)")
+    log.info(f"MODELO 2 — FILTRADO COLABORATIVO (PRODUCCIÓN - K={N_NEIGHBORS_OPTIMAL})")
     log.info("=" * 60)
 
     train, test, interactions = load_data()
     matrix, customer_idx, article_idx = build_user_item_matrix(interactions)
     test_customer_ids = list(test["customer_id"].unique())
 
-    # Variables para trackear al campeón
-    best_n = 0
-    best_map = -1.0
-    best_recs = None
-    best_metrics = None
-    resultados_grid = []
-
-    # EL BUCLE DEL GRID SEARCH
-    for n in NEIGHBORS_GRID:
-        log.info("-" * 60)
-        log.info(f"▶ Probando N_NEIGHBORS = {n} ...")
-        
-        recs = predict_for_test_users(
-            matrix, customer_idx, article_idx,
-            test_customer_ids=test_customer_ids,
-            top_k=TOP_K, n_neighbors=n, batch_size=BATCH_SIZE
-        )
-        
-        metrics = evaluate(recs, test)
-        current_map = metrics['map_at_12']
-        
-        resultados_grid.append((n, current_map))
-        log.info(f"  Resultado parcial -> MAP@12: {current_map:.5f} | Cobertura: {metrics['coverage_pct']:.1f}%")
-        
-        if current_map > best_map:
-            log.info(f"  🏆 ¡NUEVO CAMPEÓN! (MAP subió de {max(0, best_map):.5f} a {current_map:.5f})")
-            best_map = current_map
-            best_n = n
-            best_recs = recs
-            best_metrics = metrics
-
-    # REPORTE FINAL
-    log.info("=" * 60)
-    log.info("RESUMEN DEL GRID SEARCH:")
-    for n, score in resultados_grid:
-        log.info(f"  Vecinos: {n:3d} | MAP@12: {score:.5f}")
-        
-    log.info("=" * 60)
-    log.info(f"GANADOR ABSOLUTO: N_NEIGHBORS = {best_n} (MAP@12: {best_map:.5f})")
+    log.info(f"▶ Generando predicciones usando {N_NEIGHBORS_OPTIMAL} vecinos...")
     
-    # Solo guardamos el mejor de todos
-    save_results(best_recs, best_metrics)
-    log.info("¡Grid Search finalizado con éxito!")
+    recs = predict_for_test_users(
+        matrix, customer_idx, article_idx,
+        test_customer_ids=test_customer_ids,
+        top_k=TOP_K, n_neighbors=N_NEIGHBORS_OPTIMAL, batch_size=BATCH_SIZE
+    )
+    
+    metrics = evaluate(recs, test)
+    
+    log.info("=" * 60)
+    log.info(f"RESULTADOS: MAP@12: {metrics['map_at_12']:.5f} | Cobertura: {metrics['coverage_pct']:.1f}%")
+    log.info("=" * 60)
+    
+    save_results(recs, metrics)
+    log.info("¡Modelo Colaborativo ejecutado con éxito!")
 
 if __name__ == "__main__":
-    main()
+    run_collaborative_model()

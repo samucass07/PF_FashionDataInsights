@@ -1,14 +1,8 @@
 import pandas as pd
-import os
-import logging
+from config import PROCESSED_DIR, setup_logging
 
-# ─────────────────────────────────────────────
-# CONFIGURACIÓN
-# ─────────────────────────────────────────────
-PROCESSED_PATH = "data/processed"
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
-log = logging.getLogger(__name__)
+# Inicializamos el log estandarizado para Airflow
+log = setup_logging()
 
 # ─────────────────────────────────────────────
 # CARGA DE DATOS EN MEMORIA (BLINDADO CON DTYPES)
@@ -17,18 +11,20 @@ def load_model_data():
     log.info("Cargando motores del Modelo 1 en memoria RAM...")
     try:
         # FORZAMOS STRING para no perder los ceros a la izquierda de los IDs
-        df_customers = pd.read_csv(os.path.join(PROCESSED_PATH, "features_customers.csv"), dtype={'customer_id': str})
-        df_popularity = pd.read_csv(os.path.join(PROCESSED_PATH, "gen_popularity.csv"), dtype={'article_id': str})
-        df_articles = pd.read_csv(os.path.join(PROCESSED_PATH, "features_articles.csv"), dtype={'article_id': str})
+        # Usamos pathlib para acceder a las rutas limpiamente
+        df_customers = pd.read_csv(PROCESSED_DIR / "features_customers.csv", dtype={'customer_id': str})
+        df_popularity = pd.read_csv(PROCESSED_DIR / "gen_popularity.csv", dtype={'article_id': str})
+        df_articles = pd.read_csv(PROCESSED_DIR / "features_articles.csv", dtype={'article_id': str})
         return df_customers, df_popularity, df_articles
     except FileNotFoundError as e:
-        log.error(f"Error crítico: Faltan archivos en {PROCESSED_PATH}.")
+        log.error(f"Error crítico: Faltan archivos en {PROCESSED_DIR}.")
         raise e
 
 # ─────────────────────────────────────────────
-# MAIN
+# MAIN REFACTOREADO PARA MLOPS
 # ─────────────────────────────────────────────
-def main():
+def run_popularity_model():
+    """Función principal orquestable por Airflow."""
     log.info("=" * 55)
     log.info("MODELO 1 — Popularidad por Generación (PRODUCCIÓN)")
     log.info("=" * 55)
@@ -37,7 +33,7 @@ def main():
     df_customers, df_popularity, df_articles = load_model_data()
 
     # 2. Cargar Test (A quiénes les vamos a recomendar)
-    test_path = os.path.join(PROCESSED_PATH, "test_transactions.csv")
+    test_path = PROCESSED_DIR / "test_transactions.csv"
     test_df = pd.read_csv(test_path, dtype={'customer_id': str, 'article_id': str})
     clientes_a_predecir = test_df['customer_id'].unique()
 
@@ -105,12 +101,11 @@ def main():
     df_recs = pd.DataFrame(todas_las_recomendaciones)
     recs_exploded = df_recs.explode("predictions").rename(columns={"predictions": "article_id"})
     
-    path_r = os.path.join(PROCESSED_PATH, "recommendations_model1.csv")
+    path_r = PROCESSED_DIR / "recommendations_model1.csv"
     recs_exploded.to_csv(path_r, index=False)
 
     log.info(f"¡Éxito! Archivo guardado en: {path_r}")
     log.info("=" * 55)
 
 if __name__ == "__main__":
-    main()
-    
+    run_popularity_model()

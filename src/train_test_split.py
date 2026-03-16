@@ -1,24 +1,23 @@
 import pandas as pd
-import os
-import logging
+from config import PROCESSED_DIR, setup_logging
 
 # ─────────────────────────────────────────────
 # CONFIGURACIÓN
 # ─────────────────────────────────────────────
-PROCESSED_PATH = "data/processed"
 EVAL_WEEKS = 1 # Escondemos la última semana
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
-log = logging.getLogger(__name__)
+# Inicializamos el log estandarizado para Airflow
+log = setup_logging()
 
-def main():
+def run_train_test_split():
+    """Función principal orquestable por Airflow."""
     log.info("=" * 50)
     log.info("INICIANDO SPLIT TEMPORAL (TRAIN/TEST)")
     log.info("=" * 50)
     
     # 1. Cargar datos limpios del ETL
-    # Usamos el sample del 10% que creaste en el paso anterior
-    file_path = os.path.join(PROCESSED_PATH, "transactions_sample.csv")
+    # Usamos pathlib para una ruta más limpia
+    file_path = PROCESSED_DIR / "transactions_sample.csv"
     log.info(f"Cargando historial completo: {file_path}")
     df = pd.read_csv(file_path, parse_dates=['t_dat'])
     
@@ -41,8 +40,8 @@ def main():
     log.info("-" * 50)
     
     # 4. Guardar los archivos bajo llave
-    train_path = os.path.join(PROCESSED_PATH, "train_transactions.csv")
-    test_path = os.path.join(PROCESSED_PATH, "test_transactions.csv")
+    train_path = PROCESSED_DIR / "train_transactions.csv"
+    test_path = PROCESSED_DIR / "test_transactions.csv"
     
     train_df.to_csv(train_path, index=False)
     test_df.to_csv(test_path, index=False)
@@ -50,4 +49,4 @@ def main():
     log.info("Archivos guardados exitosamente. ¡Data Leakage solucionado!")
 
 if __name__ == "__main__":
-    main()
+    run_train_test_split()
