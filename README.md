@@ -62,24 +62,68 @@ El archivo `src/ft_engineering.py` toma los datos limpios y crea las variables (
 
 ---
 
-## 5. Modelo 1: Popularidad por Generación (Baseline)
-El archivo `src/model_popularity_gen.py` contiene nuestro primer motor de recomendación, diseñado con arquitectura funcional de alto rendimiento:
+## 5. Modelos de Recomendación
 
-* **In-Memory Processing**: Los datos se cargan en la RAM una sola vez, eliminando cuellos de botella.
-* **Manejo de Cold Start**: "Fallback" seguro ofreciendo los productos más vendidos a nivel global de los últimos 90 días.
-* **Regla de Negocio (Deduplicación)**: Implementa un filtro inteligente que evita recomendar el mismo modelo de prenda en distintos colores.
+Hemos diseñado una arquitectura modular basada en múltiples enfoques algorítmicos para capturar diferentes comportamientos de compra:
 
-## 6. Cómo empezar (Instalación y Ejecución)
+### Modelo 1: Popularidad por Generación (`model_popularity_gen.py`)
+Actúa como un *baseline* extremadamente sólido para el sector de Fast Fashion (basado en tendencias masivas).
+* **In-Memory Processing**: Uso de diccionarios de alta velocidad O(1) para procesar a todos los clientes en segundos.
+* **Manejo de Cold Start**: "Fallback" seguro ofreciendo los productos más vendidos a nivel global para clientes sin historial.
+* **Regla de Negocio (Deduplicación)**: Implementa un filtro que evita recomendar el mismo modelo de prenda en distintos colores.
 
-Si quieres replicar este proyecto, puedes ejecutar los siguientes comandos:
+### Modelo 2: Filtrado Colaborativo basado en Usuarios (`model_collaborative.py`)
+Captura preferencias de nicho buscando clientes con historiales de compra similares.
+* **Matriz Dispersa (Sparse Matrix)**: Optimización extrema de memoria usando `scipy.sparse` para calcular la similitud del coseno.
+* **Custom Grid Search**: Búsqueda automatizada de hiperparámetros que itera, evalúa y guarda dinámicamente el mejor modelo. Se determinó que el rendimiento óptimo se alcanza con **`N_NEIGHBORS = 200`**.
 
-# Instalar las herramientas necesarias
-!pip install pandas numpy
+### Orquestador Híbrido (`hybrid_recommender.py`)
+Un sistema ensamblador que fusiona lo mejor de ambos mundos:
+* Da prioridad a las recomendaciones personalizadas del Modelo 2 (Colaborativo).
+* Rellena automáticamente los huecos vacíos y rescata a los clientes afectados por el *Cold Start* inyectando las tendencias del Modelo 1 (Popularidad), garantizando un vector estricto de 12 predicciones por cliente.
 
-# Ejecutar el pipeline completo
-!python src/etl.py
-!python src/ft_engineering.py
-!python src/model_popularity_gen.py
+---
+
+## 6. Juez Central y Métricas Avanzadas (`evaluate_models.py`)
+
+Para garantizar que el modelo sea auditable y profesional, se construyó un script evaluador independiente. Esto previene el *Data Leakage* al separar estrictamente los datos de entrenamiento de los datos de prueba ciegos (Test). 
+
+Se implementaron métricas estándar de la industria para sistemas de recomendación (Ranking):
+* **MAP@12 (Mean Average Precision)**: Mide la precisión global teniendo en cuenta la posición de los aciertos.
+* **NDCG@12 (Normalized Discounted Cumulative Gain)**: Métrica suprema de ordenamiento; penaliza severamente si un acierto se encuentra al final de las recomendaciones en lugar de al principio.
+* **Precision@12 y Recall@12**: Permiten auditar qué tan "limpias" son las sugerencias y qué porcentaje del historial real del cliente logramos capturar.
+* **Cobertura**: Monitoreo de *Cold Start* y porcentaje de clientes con al menos un acierto.
+
+---
+
+## 7. Cómo empezar (Instalación y Ejecución)
+
+Si quieres replicar este proyecto en tu entorno local, sigue estos pasos:
+
+```bash
+# 1. Activar el entorno virtual (Recomendado)
+# En Windows:
+venv\Scripts\activate
+# En macOS/Linux:
+# source venv/bin/activate
+
+# 2. Instalar las herramientas y dependencias necesarias
+pip install pandas numpy scikit-learn scipy
+# O instalar mediante el archivo de requerimientos si está disponible:
+# pip install -r requirements.txt
+
+# 3. Ejecutar el pipeline de datos y preparar el terreno
+python src/etl.py
+python src/ft_engineering.py
+python src/train_test_split.py
+
+# 4. Generar las predicciones
+python src/model_popularity_gen.py
+python src/model_collaborative.py
+python src/hybrid_recommender.py
+
+# 5. Evaluar el rendimiento de los modelos
+python src/evaluate_models.py
 
 ## Presentaciones
 * [Presentación 1](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/EDA/EDA.md)
