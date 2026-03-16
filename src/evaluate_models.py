@@ -1,16 +1,14 @@
 import pandas as pd
 import numpy as np
-import os
-import logging
+from config import PROCESSED_DIR, setup_logging
 
 # ─────────────────────────────────────────────
 # CONFIGURACIÓN
 # ─────────────────────────────────────────────
-PROCESSED_PATH = "data/processed"
 TOP_K = 12
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
-log = logging.getLogger(__name__)
+# Inicializamos el log estandarizado para Airflow
+log = setup_logging()
 
 # ─────────────────────────────────────────────
 # FUNCIONES MATEMÁTICAS (MÉTRICAS)
@@ -58,16 +56,18 @@ def ndcg_at_k(predicted, actual, k=12):
     return dcg / idcg
 
 # ─────────────────────────────────────────────
-# JUEZ CENTRAL
+# JUEZ CENTRAL (MLOPS)
 # ─────────────────────────────────────────────
 
-def main():
+def run_evaluation():
+    """Función principal orquestable por Airflow."""
     log.info("=" * 60)
     log.info("EVALUADOR CENTRAL DE MODELOS - TABLERO COMPLETO")
     log.info("=" * 60)
 
     # 1. Cargar el "Examen" (Ground Truth)
-    test_path = os.path.join(PROCESSED_PATH, "test_transactions.csv")
+    # Usamos pathlib para acceder de forma limpia
+    test_path = PROCESSED_DIR / "test_transactions.csv"
     log.info("Cargando respuestas correctas (Test)...")
     test = pd.read_csv(test_path, dtype={'customer_id': str, 'article_id': str})
     
@@ -82,9 +82,9 @@ def main():
     }
 
     for nombre_modelo, archivo in modelos_a_evaluar.items():
-        ruta_archivo = os.path.join(PROCESSED_PATH, archivo)
+        ruta_archivo = PROCESSED_DIR / archivo
         
-        if not os.path.exists(ruta_archivo):
+        if not ruta_archivo.exists():
             log.warning(f"No se encontró el archivo: {archivo}")
             continue
 
@@ -130,4 +130,4 @@ def main():
     log.info("=" * 60)
 
 if __name__ == "__main__":
-    main()
+    run_evaluation()
