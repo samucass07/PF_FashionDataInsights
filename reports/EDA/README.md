@@ -12,7 +12,7 @@ Esta información es el cimiento para construir un sistema de recomendaciones qu
 
 ### 2.1 Distribución de Edad de los Clientes
 
-![Distribución de Edad](reports/EDA/images/distribucion_edad.png)
+![Distribución de Edad](EDA/images/distribucion_edad.png)
 
 ![Estatus de Membresía](reports/EDA/images/segmentacion_status.png)
 
