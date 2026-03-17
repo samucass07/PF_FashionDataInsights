@@ -12,9 +12,9 @@ Esta información es el cimiento para construir un sistema de recomendaciones qu
 
 ### 2.1 Distribución de Edad de los Clientes
 
-![Distribución de Edad](EDA/images/distribucion_edad.png)
+![Distribución de Edad](images/distribucion_edad.png)
 
-![Estatus de Membresía](reports/EDA/images/segmentacion_status.png)
+![Estatus de Membresía](images/segmentacion_status.png)
 
 * **El reinado de la tienda online:** Descubrimos que la inmensa mayoría de las compras se realizan por la tienda web (Canal 2) frente a las tiendas físicas. Lo más sorprendente es que **esto aplica para todas las edades**. El mito de que "la gente mayor solo compra en el local" no se cumple en nuestra tienda.
 * **El bolsillo es igual para todos:** Al analizar cuánto gastan los clientes, vimos que la edad no importa. Tanto los más jóvenes (Gen Z) como los mayores (Seniors) gastan en promedio la misma cantidad de dinero por prenda.
@@ -24,9 +24,9 @@ Esta información es el cimiento para construir un sistema de recomendaciones qu
 
 ### 2.2 Top 10 Categorías de Productos y Colores más Vendidos
 
-![Top 10 Categorías](reports/EDA/images/top_productos.png)
+![Top 10 Categorías](images/top_productos.png)
 
-![Colores más Vendidos](reports/EDA/images/piechart_colores.png)
+![Colores más Vendidos](images/piechart_colores.png)
 
 * Las **prendas superiores** (*Garment Upper Body*) dominan el volumen de ventas con una diferencia significativa sobre el resto de categorías, seguidas por las prendas inferiores y las de cuerpo completo.
 * Existe una brecha pronunciada entre las primeras 3 categorías y el resto, lo que indica una concentración de ventas en pocas categorías clave.
@@ -38,15 +38,15 @@ Esta información es el cimiento para construir un sistema de recomendaciones qu
 
 ### 3.1 Gasto Promedio por Generación
 
-![Gasto por Generación](reports/EDA/images/gasto_prom_edad.png)
+![Gasto por Generación](images/gasto_prom_edad.png)
 
 ### 3.2 Mapa de Correlación
 
-![Mapa de Calor](reports/EDA/images/mapacalor_precioedadcanal.png)
+![Mapa de Calor](images/mapacalor_precioedadcanal.png)
 
 ### 3.3 Pairplot Multivariado
 
-![Pairplot](reports/EDA/images/analisis_multivariado.png)
+![Pairplot](images/analisis_multivariado.png)
 
 A partir del análisis de correlación cruzada sobre una muestra representativa de 5.000 transacciones, extraemos los siguientes insights clave:
 
@@ -61,7 +61,7 @@ A partir del análisis de correlación cruzada sobre una muestra representativa 
 
 ### 4.1 Ventas Diarias (2018–2020)
 
-![Evolución de Ventas Diarias](reports/EDA/images/evolucion_ventas.png)
+![Evolución de Ventas Diarias](images/evolucion_ventas.png)
 
 Los picos pronunciados no son anomalías — son oportunidades. Cada uno corresponde a un evento comercial específico y predecible:
 
@@ -79,7 +79,7 @@ Los picos pronunciados no son anomalías — son oportunidades. Cada uno corresp
 
 ### 5.1 Precio Promedio por Temporada
 
-![Precio por Temporada](reports/EDA/images/precio_promedio_productos.png)
+![Precio por Temporada](images/precio_promedio_productos.png)
 
 * **Política de Precios Estable:** H&M mantiene un ticket promedio relativamente constante a lo largo del año, reforzando su posicionamiento de *fast fashion* accesible.
 * **Efecto Lanzamiento vs. Liquidación:** Se observa un pico en el ticket promedio durante **Spring** (Septiembre–Noviembre), coincidiendo con la entrada de colecciones pesadas (abrigos). En contraste, **Winter** (Junio–Agosto) presenta los precios promedio más bajos, reflejando el fuerte impacto de las rebajas y liquidaciones estacionales.
@@ -119,11 +119,11 @@ Los artículos más vendidos por segmento de edad revelan patrones que justifica
 
 ### 7.1 Ventas Totales por Grupo de Género
 
-![Ventas por Género](reports/EDA/images/ventas_totales_grupo.png)
+![Ventas por Género](images/ventas_totales_grupo.png)
 
 ### 7.2 Preferencia de Color por Género
 
-![Color por Género](reports/EDA/images/ventas_genero_color.png)
+![Color por Género](images/ventas_genero_color.png)
 
 El análisis del top 10 de colores revela diferencias significativas entre *Ladieswear* y *Menswear*:
 
@@ -134,7 +134,7 @@ El análisis del top 10 de colores revela diferencias significativas entre *Ladi
 
 ### 7.3 Preferencia de Color por Generación
 
-![Color por Generación](reports/EDA/images/preferencia_proporcional_color.png)
+![Color por Generación](images/preferencia_proporcional_color.png)
 
 El cruce entre preferencias de color y grupos etarios revela patrones contraintuitivos de alto valor para la segmentación:
 
