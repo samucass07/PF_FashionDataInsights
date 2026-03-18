@@ -147,10 +147,6 @@ def save_results(recommendations, metrics):
     path_r = PROCESSED_DIR / "recommendations_model2.csv"
     recs_exploded.to_csv(path_r, index=False)
     
-    path_m = PROCESSED_DIR / "metrics_model2.csv"
-    pd.DataFrame([metrics]).to_csv(path_m, index=False)
-    log.info(f"Resultados guardados en disco.")
-
 # ─────────────────────────────────────────────
 # MAIN REFACTOREADO PARA MLOPS
 # ─────────────────────────────────────────────
