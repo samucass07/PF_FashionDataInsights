@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 
 # Configuración de la página
-st.set_page_config(page_title="Fashion Advisor PF", layout="centered")
+st.set_page_config(page_title="Fashion Advisor PF", layout="wide")
 
 st.title("👗 Fashion Recommendation System")
 st.markdown("Introduce tu ID de cliente para obtener las mejores ofertas personalizadas.")
@@ -16,21 +16,26 @@ if st.button("Obtener Recomendaciones"):
         with st.spinner('Consultando al cerebro de la IA...'):
             try:
                 # Llamamos a nuestra API de FastAPI
-                # Si estás en local es 127.0.0.1, si estás en Docker será 'api'
                 response = requests.get(f"http://127.0.0.1:8000/recommend/{customer_id}")
                 
                 if response.status_code == 200:
                     data = response.json()
                     recs = data['recommendations']
                     
-                    st.success(f"¡Listo! Encontramos {data['count']} recomendaciones:")
+                    st.success(f"¡Listo! Encontramos recomendaciones para el cliente:")
                     
-                    # Mostramos los IDs en una tabla linda
-                    df_recs = pd.DataFrame(recs, columns=["Article ID"])
-                    st.table(df_recs)
+                    # Convertimos a DataFrame para mostrarlo lindo
+                    df_display = pd.DataFrame(recs)
+                    
+                    # Renombramos columnas para el usuario
+                    df_display.columns = ["ID Artículo", "Producto", "Categoría", "Color"]
+                    
+                    # Mostramos la tabla que ocupa todo el ancho
+                    st.dataframe(df_display, use_container_width=True)
                 else:
-                    st.error(f"Error: {response.json().get('detail', 'No encontrado')}")
+                    error_msg = response.json().get('detail', 'Error desconocido')
+                    st.error(f"Error de la API: {error_msg}")
             except Exception as e:
-                st.error(f"No se pudo conectar con la API. ¿Está prendida? Error: {e}")
+                st.error(f"No se pudo conectar con la API. Asegúrate de que el comando 'uvicorn' esté corriendo. Error: {e}")
     else:
-        st.warning("Por favor, ingresa un ID.")
+        st.warning("Por favor, ingresa un ID de cliente.")
