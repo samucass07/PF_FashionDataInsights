@@ -124,9 +124,12 @@ python src/hybrid_recommender.py
 
 # 5. Evaluar el rendimiento de los modelos
 python src/evaluate_models.py
+```
 
-## Presentaciones
-* [Presentación 1](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/EDA/EDA.md)
+## Visualizaciones
+* [Dashboard](https://drive.google.com/drive/folders/12x82i3Se9JESUq9tYNQd2I4xDhyfwusW)
+* [Presentacion FashioDataInsights]()
+
 
 ## Autores
 Este es un proyecto desarrollado por:
