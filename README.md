@@ -171,8 +171,7 @@ python src/evaluate_models.py
 
 ## Visualizaciones
 * [Dashboard](https://drive.google.com/drive/folders/12x82i3Se9JESUq9tYNQd2I4xDhyfwusW)
-* [Presentacion FashioDataInsights 1](https://docs.google.com/presentation/d/1ZW_UpRqZ-5Oa4zr0GJUk6pLlANSg_4UTBVDaGqmFuOI/edit?slide=id.p1#slide=id.p1)
-* [Presentacion FashioDataInsights 1](https://docs.google.com/presentation/d/198zUpoO9puURNIuknJhn6gxJqsaZGyXG-3QSQtEcjAM/edit?usp=sharing)
+* [Presentacion FashioDataInsights](https://docs.google.com/presentation/d/1ZW_UpRqZ-5Oa4zr0GJUk6pLlANSg_4UTBVDaGqmFuOI/edit?usp=sharing)
 
 ## Autores
 Este es un proyecto desarrollado por:
