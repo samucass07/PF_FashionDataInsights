@@ -9,6 +9,13 @@ Desarrollar un sistema de recomendación híbrido capaz de predecir, para cada c
 
 ---
 
+---
+
+## Fuente de Datos
+El dataset utilizado en este proyecto proviene de la competición oficial de Kaggle: [H&M Personalized Fashion Recommendations](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations/data).
+
+---
+
 ## Estructura del Repositorio
 Para que el proyecto sea fácil de navegar, hemos organizado las carpetas de la siguiente manera:
 
@@ -17,9 +24,10 @@ Para que el proyecto sea fácil de navegar, hemos organizado las carpetas de la 
     * **`raw/`**: Archivos originales descargados directamente de la fuente.
     * **`processed/`**: Archivos con los datos limpios y optimizados.
 * **`notebooks/`**: Notebooks de Jupyter con el proceso de exploración de datos.
-* **`reports/`**: Informes de resultados y conclusiones. 
+* **`reports/`**: Informes técnicos, resultados y conclusiones de arquitectura. 
 * **`src/`**: Contiene el motor del proyecto (scripts ETL, Feature Engineering y Modelos).
 * **`venv/`**: Nuestro entorno virtual para asegurar que las herramientas siempre funcionen correctamente.
+* **`docker-compose.yml`**: Configuración para levantar el entorno completo en contenedores.
 
 ## 1. El Corazón de los Datos (Dataset)
 Trabajamos con tres pilares fundamentales de información proporcionados por H&M:
@@ -39,7 +47,7 @@ El archivo `src/etl.py` es nuestra solución de ingeniería. Transforma los dato
 * **Optimización de RAM**: Cambiamos la forma en que la computadora lee los números para que ocupen un 60% menos de espacio en la memoria.
 * **Integridad Referencial**: Nos aseguramos de que no existan compras de productos que no estén en el catálogo oficial.
 
-[Ver informe completo ETL](https://github.com/samucass07/PF_FashionDataInsights/tree/main/reports/ETL/ETL.md)
+[Ver informe completo ETL](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/ETL/README.md)
 
 ## 3. Análisis Exploratorio (EDA)
 El archivo contiene la revisión y análisis del comportamiento inicial del dataset. En él se explora:
@@ -50,7 +58,7 @@ El archivo contiene la revisión y análisis del comportamiento inicial del data
 * Estadísticas descriptivas
 * Correlaciones y patrones
 
-[Ver informe completo EDA](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/EDA/EDA.md)
+[Ver informe completo EDA](https://github.com/samucass07/PF_FashionDataInsights/tree/main/reports/EDA)
 
 ## 4. Ingeniería de Características (Feature Engineering)
 El archivo `src/ft_engineering.py` toma los datos limpios y crea las variables ("features") necesarias para alimentar los modelos de Machine Learning. El pipeline genera 4 pilares de datos:
@@ -96,7 +104,42 @@ Se implementaron métricas estándar de la industria para sistemas de recomendac
 
 ---
 
-## 7. Cómo empezar (Instalación y Ejecución)
+7. Arquitectura de Datos y Orquestación (Airflow)
+
+El flujo de datos no es un proceso estático; se diseñó un pipeline automatizado utilizando **Apache Airflow** para garantizar que el modelo siempre trabaje con información íntegra y actualizada.
+
+* **Orquestación mediante DAGs**: Se implementó un grafo acíclico dirigido que coordina las tareas de extracción, limpieza profunda y generación de archivos optimizados.
+* **Resiliencia y Monitoreo**: Gracias al scheduler de Airflow, el sistema cuenta con logs detallados por cada etapa y políticas de reintento automático ante fallos de recursos.
+* **Eficiencia**: El pipeline transforma los archivos originales en formatos **Parquet**, permitiendo una carga de datos mucho más veloz para los servicios de inferencia.
+
+[Ver informe completo de Orquestación](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/AIRFLOW/README.md)
+
+---
+
+# 8. Implementación de Servicios (FastAPI & Streamlit)
+
+Para transformar el modelo en una herramienta accionable, se desarrolló una arquitectura de servicios desacoplada:
+
+* **Backend (FastAPI)**: Un servicio de alta velocidad que expone el motor de recomendación. Utiliza validación de tipos con **Pydantic** y ofrece documentación interactiva automática en `/docs`.
+* **Frontend (Streamlit)**: Una interfaz de usuario diseñada para la exploración de resultados. Permite consultar recomendaciones personalizadas por cliente y visualizar tendencias de productos en tiempo real mediante gráficos interactivos.
+* **Comunicación**: La aplicación consume la API de forma asincrónica, delegando la lógica pesada de datos al servidor para mantener una interfaz fluida.
+
+[Ver informe completo de Aplicación](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/FASTAPI-STREAMLIT/README.md)
+
+---
+
+# 9. Infraestructura y Contenerización (Docker Compose)
+
+Todo el ecosistema tecnológico se encuentra encapsulado en contenedores de **Docker**, lo que garantiza que el proyecto sea 100% portable y reproducible en cualquier entorno.
+
+* **Orquestación Multi-Contenedor**: Mediante **Docker Compose**, se gestionan de forma simultánea los servicios de Airflow (Webserver, Scheduler, DB), la API de FastAPI y la interfaz de Streamlit.
+* **Networking y Persistencia**: Se configuró una red interna para la comunicación segura entre microservicios y volúmenes compartidos para asegurar que los datos procesados por el pipeline estén disponibles para la aplicación.
+
+[Ver informe completo de Integración](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/DOCKER-COMPOSE/README.md)
+
+---
+
+## 10. Cómo empezar (Instalación y Ejecución)
 
 Si quieres replicar este proyecto en tu entorno local, sigue estos pasos:
 
@@ -124,9 +167,11 @@ python src/hybrid_recommender.py
 
 # 5. Evaluar el rendimiento de los modelos
 python src/evaluate_models.py
+```
 
-## Presentaciones
-* [Presentación 1](https://github.com/samucass07/PF_FashionDataInsights/blob/main/reports/EDA/EDA.md)
+## Visualizaciones
+* [Dashboard](https://drive.google.com/drive/folders/12x82i3Se9JESUq9tYNQd2I4xDhyfwusW)
+* [Presentacion FashioDataInsights](https://docs.google.com/presentation/d/1ZW_UpRqZ-5Oa4zr0GJUk6pLlANSg_4UTBVDaGqmFuOI/edit?usp=sharing)
 
 ## Autores
 Este es un proyecto desarrollado por:
