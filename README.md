@@ -9,6 +9,13 @@ Desarrollar un sistema de recomendación híbrido capaz de predecir, para cada c
 
 ---
 
+---
+
+## Fuente de Datos
+El dataset utilizado en este proyecto proviene de la competición oficial de Kaggle: [H&M Personalized Fashion Recommendations](https://www.kaggle.com/competitions/h-and-m-personalized-fashion-recommendations/data).
+
+---
+
 ## Estructura del Repositorio
 Para que el proyecto sea fácil de navegar, hemos organizado las carpetas de la siguiente manera:
 
