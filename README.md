@@ -17,17 +17,68 @@ El dataset utilizado en este proyecto proviene de la competición oficial de Kag
 ---
 
 ## Estructura del Repositorio
+
 Para que el proyecto sea fácil de navegar, hemos organizado las carpetas de la siguiente manera:
 
-* **`App/`**: La interfaz de usuario.
-* **`data/`**: El almacén de datos.
-    * **`raw/`**: Archivos originales descargados directamente de la fuente.
-    * **`processed/`**: Archivos con los datos limpios y optimizados.
-* **`notebooks/`**: Notebooks de Jupyter con el proceso de exploración de datos.
-* **`reports/`**: Informes técnicos, resultados y conclusiones de arquitectura. 
-* **`src/`**: Contiene el motor del proyecto (scripts ETL, Feature Engineering y Modelos).
-* **`venv/`**: Nuestro entorno virtual para asegurar que las herramientas siempre funcionen correctamente.
-* **`docker-compose.yml`**: Configuración para levantar el entorno completo en contenedores.
+```
+PF_FashionDataInsights/
+├── App/
+│   ├── frontend.py
+│   └── main.py
+├── dags/
+│   └── fashion_pipeline_dag.py
+├── data/
+│   ├── raw/                        ← archivos originales de Kaggle (no versionados)
+│   └── processed/                  ← CSVs limpios y features (no versionados)
+├── logs/                           ← logs generados por Airflow (no versionados)
+├── Notebooks/
+│   ├── eda_inicial.ipynb
+│   └── eda_profundo.ipynb
+├── reports/
+│                    
+├── src/
+│   ├── config.py
+│   ├── etl.py
+│   ├── train_test_split.py
+│   ├── ft_engineering.py
+│   ├── model_popularity_gen.py
+│   ├── model_collaborative.py
+│   ├── hybrid_recommender.py
+│   ├── evaluate_models.py
+│   └── fix_rank.py
+├── docker-compose.yml
+└── README.md
+```
+
+### App/
+| Archivo | Descripción |
+|---|---|
+| `frontend.py` | Interfaz de usuario construida con Streamlit. Permite buscar un cliente por ID y visualizar sus 12 recomendaciones personalizadas. |
+| `main.py` | API backend construida con FastAPI. Recibe el `customer_id`, consulta el modelo ganador y devuelve las recomendaciones en formato JSON. |
+
+### dags/
+| Archivo | Descripción |
+|---|---|
+| `fashion_pipeline_dag.py` | DAG de Apache Airflow que orquesta el pipeline completo de extremo a extremo: ETL → Feature Engineering → Split → Modelos → Evaluación. Contenedorizado con Docker. |
+
+### Notebooks/
+| Archivo | Descripción |
+|---|---|
+| `eda_inicial.ipynb` | Exploración inicial del dataset. Verificación de tipos de datos, valores nulos, distribuciones básicas y primeras estadísticas descriptivas. |
+| `eda_profundo.ipynb` | Análisis exploratorio detallado. Segmentación por generación, preferencias de color por género, evolución de ventas diarias, análisis estacional y top artículos por segmento. |
+
+### src/
+| Archivo | Descripción |
+|---|---|
+| `config.py` | Configuración centralizada del proyecto: rutas de directorios, parámetros globales y setup del sistema de logging estandarizado para Airflow. |
+| `etl.py` | Pipeline de Extracción, Transformación y Carga. Lee las 31M transacciones por chunks, samplea el 5% de clientes, limpia las 3 tablas y exporta los CSVs limpios. |
+| `train_test_split.py` | Divide las transacciones en train y test usando un split temporal (últimas semanas como test). Evita data leakage al no usar split aleatorio. |
+| `ft_engineering.py` | Pipeline de Feature Engineering. Genera 4 grupos de features: segmentación demográfica (age_group), comportamiento RFM del cliente, tendencias recientes por ventana de 90 días, y matriz de interacciones. |
+| `model_popularity_gen.py` | Modelo 1 — Popularity Generation-Based. Recomienda los 12 artículos más populares dentro de la generación del cliente. Baseline interpretable sin cold start. |
+| `model_collaborative.py` | Modelo 2 — User-Based Collaborative Filtering. Encuentra los 20 vecinos más similares por similitud coseno y recomienda artículos que esos vecinos compraron. Implementado con batch processing para manejar 135k clientes. |
+| `hybrid_recommender.py` | Modelo Híbrido. Fusiona el colaborativo y el de popularidad: prioriza recomendaciones personalizadas del colaborativo y rellena huecos con tendencias por generación, garantizando 12 predicciones por cliente. |
+| `evaluate_models.py` | Evaluador central de los 3 modelos. Calcula MAP@12, NDCG@12, Precision@12, Recall@12, Cobertura y Cold Start. Genera `metrics_all_models.csv` como única fuente de verdad. |
+| `fix_rank.py` | Script utilitario. Agrega la columna `rank` (1-12 por cliente) a los CSVs de recomendaciones para uso en el dashboard de Power BI. |
 
 ## 1. El Corazón de los Datos (Dataset)
 Trabajamos con tres pilares fundamentales de información proporcionados por H&M:
