@@ -220,7 +220,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-# Datos - no subir a Git
-Data/
-data/
-*.csv
+# Ignorar contenido de data pero mantener las carpetas
+data/raw/*
+data/processed/*
+
+# Mantener las carpetas con un .gitkeep
+!data/raw/.gitkeep
+!data/processed/.gitkeep
