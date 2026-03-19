@@ -78,7 +78,7 @@ PF_FashionDataInsights/
 | `model_collaborative.py` | Modelo 2 — User-Based Collaborative Filtering. Encuentra los 20 vecinos más similares por similitud coseno y recomienda artículos que esos vecinos compraron. Implementado con batch processing para manejar 135k clientes. |
 | `hybrid_recommender.py` | Modelo Híbrido. Fusiona el colaborativo y el de popularidad: prioriza recomendaciones personalizadas del colaborativo y rellena huecos con tendencias por generación, garantizando 12 predicciones por cliente. |
 | `evaluate_models.py` | Evaluador central de los 3 modelos. Calcula MAP@12, NDCG@12, Precision@12, Recall@12, Cobertura y Cold Start. Genera `metrics_all_models.csv` como única fuente de verdad. |
-| `fix_rank.py` | Script utilitario. Agrega la columna `rank` (1-12 por cliente) a los CSVs de recomendaciones para uso en el dashboard de Power BI. |
+
 
 ## 1. El Corazón de los Datos (Dataset)
 Trabajamos con tres pilares fundamentales de información proporcionados por H&M:
